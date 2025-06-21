@@ -10,6 +10,7 @@
 // gera uma lista de nós a partir do array de frequências
 // constrói a árvore de Huffman a partir de uma lista de nós com caracteres e suas frequência
 // percorre a árvore de Huffman e gera os códigos binários para cada caractere folha
+// compacta o arquivo original usando huffman e grava o resultado no arquivo de saida
 
 int* CountFrequency(const char fileName[]);
 Node* createNode(unsigned char character, int frequency);
@@ -17,11 +18,12 @@ int compareNode(const void* a, const void* b);
 int generateNodeList(int* frequency, Node* nodeList[]);
 Node* buildHuffmanTree(Node* nodes[], int count);
 void generateCodes(Node* root, char* path, int depth, char* codes[256]);
+void compress(const char* filePath, const char* fileOutput);
 
-int main() {
-
+int main(int argc, char* argv[]) {
+    
     // conta frequência
-    int* freq = CountFrequency("texto.txt");
+    int* freq = CountFrequency(argv[1]);
     if(!freq) return 1;
 
     // cria lista de nós
@@ -171,4 +173,31 @@ void generateCodes(Node* root, char* path, int depth, char* codes[256]){
     //direita = 1
     path[depth] = '1';
     generateCodes(root->right, path, depth + 1, codes);
+}
+
+// compacta o arquivo original usando huffman e grava o resultado no arquivo de saida
+void compress(const char* filePath, const char* fileOutput) {
+    // abre arquivos para leitura e escrita
+    // conta frequencia
+    printf("Inciando compactação..");
+
+    FILE *file = fopen(filePath, "rb");
+    if(!file){
+        perror("Erro ao abrir arquivo");
+        return;
+    }
+
+    int* freq = CountFrequency(filePath);
+    if(!freq) return;
+    
+    // cria lista de nós, constroi árvore, gera codigos
+    Node* nodeList[256];
+    int count = generateNodeList(freq, nodeList);
+    qsort(nodeList, count, sizeof(Node*), compareNode);
+    Node* root = buildHuffmanTree(nodeList, count);
+    
+    // abre arquivos para leitura e escrita
+    // salva metadados
+    // le arquivo original, escreve códigos em bits no arquivo destino
+    // fecha arquivos e limpa memória
 }
