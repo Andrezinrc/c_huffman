@@ -148,6 +148,7 @@ Node* buildHuffmanTree(Node* nodes[], int count){
         count--;
     }
 
+    // quando restar só um nó, é a raiz da árvore
     return nodes[0];
 }
 
@@ -164,10 +165,10 @@ void generateCodes(Node* root, char* path, int depth, char* codes[256]){
     }
 
     //esquerda = 0
-    path[depth] = 0;
+    path[depth] = '0';
     generateCodes(root->left, path, depth + 1, codes);
     
     //direita = 1
-    path[depth] = 1;
+    path[depth] = '1';
     generateCodes(root->right, path, depth + 1, codes);
 }
