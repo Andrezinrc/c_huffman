@@ -1,10 +1,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "huffman.h"
+#define MAX_NODES 256
+
+// le um arquivo e conta a frequência de cada byte
+// cria e inicializa um novo nó da árvore de Huffman com caractere e frequência
+// funcao de comparcao usada para ordenar os nós por frequência
+// gera uma lista de nós a partir do array de frequências
+
+int* CountFrequency(const char fileName[]);
+Node* createNode(unsigned char character, int frequency);
+int compareNode(const void* a, const void* b);
+int generateNodeList(int* frequency, Node* nodeList[]);
+Node* buildHuffmanTree(Node* nodes[], int count);
+
+
+int main() {
+    
+    return 0;
+}
 
 
 // le um arquivo e conta a frequência de cada byte
-int* CountFrequency(const char fileName[]) {
+int* CountFrequency(const char fileName[]){
     // aloca memoria para 256 inteiros e inicializa com zero
     int *frequency = calloc(256, sizeof(int));
     
@@ -14,7 +32,7 @@ int* CountFrequency(const char fileName[]) {
     }
 
     // abre o arquivo em modo binário de leitura
-    FILE *file = fopen(fileName, "r");
+    FILE *file = fopen(fileName, "rb");
     if (file == NULL) {
         printf("Erro ao abrir arquivo");
         free(frequency);
@@ -28,11 +46,14 @@ int* CountFrequency(const char fileName[]) {
     }
 
     fclose(file);
+    file = NULL;
+
+    
     return frequency;
 }
 
 // cria e inicializa um novo nó da árvore de Huffman com caractere e frequência
-Node* createNode(unsigned char character, int frequency) {
+Node* createNode(unsigned char character, int frequency){
     // aloca memória para um novo nó
     Node *node = (Node*)malloc(sizeof(Node));
     
@@ -49,7 +70,29 @@ Node* createNode(unsigned char character, int frequency) {
     return node;
 }
 
-int main() {
-    
-    return 0;
+
+// funcao de comparcao usada para ordenar os nós por frequência
+int compareNode(const void* a, const void* b){
+    Node* nodeA = *(Node**)a; // converte o ponteiro genérico para ponteiro de Node
+    Node* nodeB = *(Node**)b; // idem
+    return nodeA->frequency - nodeB->frequency; // ordena pela frequência
 }
+
+// gera uma lista de nós a partir do array de frequências
+int generateNodeList(int* frequency, Node* nodeList[]){
+    int count = 0;
+
+    for(int i = 0; i < 256; i++){
+        if(frequency[i] > 0){
+            // cria um nó com o caractere e sua frequência
+            nodeList[count++] = createNode((unsigned char)i, frequency[i]);
+        }
+    }
+
+    return count; // quantidade de nós criados
+}
+
+Node* buildHuffmanTree(Node* nodes[], int count){
+    
+}
+
