@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "huffman.h"
+#include <string.h>
 #define MAX_NODES 256
 
 // le um arquivo e conta a frequência de cada byte
@@ -8,15 +9,43 @@
 // funcao de comparcao usada para ordenar os nós por frequência
 // gera uma lista de nós a partir do array de frequências
 // constrói a árvore de Huffman a partir de uma lista de nós com caracteres e suas frequência
+// percorre a árvore de Huffman e gera os códigos binários para cada caractere folha
 
 int* CountFrequency(const char fileName[]);
 Node* createNode(unsigned char character, int frequency);
 int compareNode(const void* a, const void* b);
 int generateNodeList(int* frequency, Node* nodeList[]);
 Node* buildHuffmanTree(Node* nodes[], int count);
-
+void generateCodes(Node* root, char* path, int depth, char* codes[256]);
 
 int main() {
+
+    // conta frequência
+    int* freq = CountFrequency("texto.txt");
+    if(!freq) return 1;
+
+    // cria lista de nós
+    Node* nodeList[256];
+    int count = generateNodeList(freq, nodeList);
+    free(freq);
+
+    // ordena os nós por frequência
+    qsort(nodeList, count, sizeof(Node*), compareNode);
+
+    // constroi a árvore de huffma
+    Node* raiz = buildHuffmanTree(nodeList, count);
+
+    char* codes[256] = {0}; // vetor para armazenar os codigos
+    char path[256];         // caminho temporário para montar os codigo
+
+    generateCodes(raiz, path, 0, codes);
+
+    for(int i = 0; i < 256; i++){
+        if(codes[i]){
+            printf("'%c' (%d): %s\n", (char)i, i, codes[i]);
+            free(codes[i]);
+        }
+    }
     
     return 0;
 }
@@ -118,7 +147,27 @@ Node* buildHuffmanTree(Node* nodes[], int count){
 
         count--;
     }
-    
-    //quando restar só um nó, é a raiz da árvore
+
     return nodes[0];
+}
+
+// gera recursivamente os codigos binarios para cada caractere, percorrendo a árvore de huffman
+// cada caminho da raiz até uma folha forma um código (esquerda = '0', direita = '1')
+void generateCodes(Node* root, char* path, int depth, char* codes[256]){
+    if(!root) return;
+
+    // se for folha, salva o codigo
+    if(!root->left && !root->right){
+        path[depth] = '\0'; //termina a string
+        codes[root->character] = strdup(path); // salva copia do codigo
+        return;
+    }
+
+    //esquerda = 0
+    path[depth] = 0;
+    generateCodes(root->left, path, depth + 1, codes);
+    
+    //direita = 1
+    path[depth] = 1;
+    generateCodes(root->right, path, depth + 1, codes);
 }
