@@ -11,9 +11,12 @@ int main(int argc, char* argv[]) {
 
     if (strcmp(argv[1], "compress") == 0) {
         compress(argv[2], argv[3]);
+        printf("Arquivo compactado com sucesso!\n");
         printCompressionStats(argv[2], argv[3]);
     } else if (strcmp(argv[1], "decompress") == 0) {
         decompress(argv[2], argv[3]);
+        printf("Arquivo descompactado com sucesso!\n");
+        printCompressionStats(argv[2], argv[3]);
     } else {
         printf("Comando inválido. Use 'compress' ou 'decompress'.\n");
         return 1;

@@ -8,7 +8,7 @@
 int* CountFrequency(const char fileName[]){
     // aloca memoria para 256 inteiros e inicializa com zero
     int *frequency = calloc(256, sizeof(int));
-    
+
     if (!frequency) {
         perror("Erro ao alocar memória para frequências");
         return NULL;
@@ -112,7 +112,13 @@ void generateCodes(Node* root, char* path, int depth, char* codes[256]){
 
     // se for folha, salva o codigo
     if(!root->left && !root->right){
-        path[depth] = '\0'; //termina a string
+        if(depth == 0) {
+            // arvore com só um nó, código "0"
+            path[depth] = '0';
+            path[depth + 1] = '\0';
+        } else {
+            path[depth] = '\0'; //termina a string normalmente
+        }
         codes[root->character] = strdup(path); // salva copia do codigo
         return;
     }
@@ -160,7 +166,22 @@ void compress(const char* filePath, const char* outputPath) {
     }
 
     // salva metadados
-    fwrite(freq, sizeof(int), 256, output);
+    int uniqueCount = 0;
+    for (int i = 0; i < 256; i++) {
+        if (freq[i] > 0) uniqueCount++;
+    }
+
+    // grava no arquivo a quantidade de caracteres unicos com frequência > 0
+    fwrite(&uniqueCount, sizeof(int), 1, output);
+
+    // para cada caractere que ocorre no arquivo original, grava o caractere e sua frequência
+    for (int i = 0; i < 256; i++) {
+        if (freq[i] > 0) {
+            unsigned char ch = (unsigned char)i;
+            fwrite(&ch, sizeof(unsigned char), 1, output); // grava o caractere
+            fwrite(&freq[i], sizeof(int), 1, output); //grava a frequência correspondente
+        }
+    }
 
     // le arquivo original, escreve códigos em bits no arquivo destino
     unsigned char buffer = 0;
@@ -215,15 +236,39 @@ void decompress(const char* filePath, const char* outputPath) {
     }
 
     // le o cabeçalho: as frequências dos 256 bytes (metadados salvos na compressao)
-    int freq[256];
-    fread(freq, sizeof(int), 256, file);
+    int freq[256] = {0};
+    int uniqueCount = 0;
+
+    // le quantos caracteres unicos foram salvos no cabeçalho
+    if (fread(&uniqueCount, sizeof(int), 1, file) != 1) {
+        fprintf(stderr, "Erro ao ler uniqueCount\n");
+        fclose(file);
+        fclose(output);
+        return;
+    }
+
+    // le cada caractere e sua frequência
+    for (int i = 0; i < uniqueCount; i++) {
+        unsigned char ch;
+        int f;
+        fread(&ch, sizeof(unsigned char), 1, file);
+        fread(&f, sizeof(int), 1, file);
+        freq[ch] = f;
+    }
 
     // reconstrói a árvore de huffman usando as frequências lidas
     Node* nodeList[256];
     int count = generateNodeList(freq, nodeList);
     qsort(nodeList, count, sizeof(Node*), compareNode);
     Node* root = buildHuffmanTree(nodeList, count);
-    
+
+    if (!root) {
+        printf("Erro: arvore de huffman vazia.\n");
+        fclose(file);
+        fclose(output);
+        return;
+    }
+
     // percorre os bits do arquivo compactado e reconstrói o conteudo original
     Node* current = root;
     int byte;
@@ -236,6 +281,7 @@ void decompress(const char* filePath, const char* outputPath) {
 
             // se chegou a um caractere (folha), escreve no arquivo de saída
             if (current->left == NULL && current->right == NULL) {
+                //printf("Caractere reconstruído: %02X\n", current->character);
                 fputc(current->character, output);
                 current = root; // volta para o início da arvore
             }
