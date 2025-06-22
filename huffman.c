@@ -11,6 +11,7 @@
 // constrói a árvore de Huffman a partir de uma lista de nós com caracteres e suas frequência
 // percorre a árvore de Huffman e gera os códigos binários para cada caractere folha
 // compacta o arquivo original usando huffman e grava o resultado no arquivo de saida
+// descompacta o arquivo comprimido com Huffman e grava o resultado no arquivo de saida
 
 int* CountFrequency(const char fileName[]);
 Node* createNode(unsigned char character, int frequency);
@@ -19,6 +20,7 @@ int generateNodeList(int* frequency, Node* nodeList[]);
 Node* buildHuffmanTree(Node* nodes[], int count);
 void generateCodes(Node* root, char* path, int depth, char* codes[256]);
 void compress(const char* filePath, const char* fileOutput);
+void decompress(const char* inputPath, const char* outputPath);
 
 int main(int argc, char* argv[]) {
 
@@ -183,7 +185,7 @@ void generateCodes(Node* root, char* path, int depth, char* codes[256]){
 }
 
 // compacta o arquivo original usando huffman e grava o resultado no arquivo de saida
-void compress(const char* filePath, const char* fileOutput) {
+void compress(const char* filePath, const char* outputPath) {
     // abre arquivos para leitura e escrita
     // conta frequencia
     printf("Inciando compactação..");
@@ -209,7 +211,7 @@ void compress(const char* filePath, const char* fileOutput) {
     generateCodes(root, path, 0, codes);
 
     // abrir arquivo de saida pra escrita
-    FILE* output = fopen(fileOutput, "wb");
+    FILE* output = fopen(outputPath, "wb");
     if(!output){
         perror("Erro ao abrir arquivo para escrita");
         return;
@@ -250,4 +252,28 @@ void compress(const char* filePath, const char* fileOutput) {
         if(codes[i]) free(codes[i]);
     }
     free(freq);
+}
+
+// descompacta o arquivo comprimido com huffman e grava o resultado no arquivo de saída
+void decompress(const char* filePath, const char* outputPath) {
+    
+   // abre o arquivo compactado para leitura em modo binario
+    FILE* file = fopen(filePath, "rb");
+    if(!file){
+        perror("Erro ao abrir arquivo compactado");
+        return;
+    }
+    
+   // abre o arquivo de saída para escrita em modo binario
+   FILE* output = fopen(outputPath, "wb");
+   if(!output){
+       perror("Erro ao criar arquivo de saída");
+       fclose(file);
+       return;
+   }
+    
+   // le o cabeçalho: as frequências dos 256 bytes (metadados salvos na compressao)
+   // reconstrói a árvore de huffman usando as frequências lidas
+   // percorre os bits do arquivo compactado e reconstrói o conteudo original
+   // fecha os arquivos e libera a memória usada
 }
