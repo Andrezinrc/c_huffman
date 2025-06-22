@@ -136,8 +136,6 @@ void generateCodes(Node* root, char* path, int depth, char* codes[256]){
 void compress(const char* filePath, const char* outputPath) {
     // abre arquivos para leitura e escrita
     // conta frequencia
-    printf("Inciando compactação..");
-
     FILE *file = fopen(filePath, "rb");
     if(!file){
         perror("Erro ao abrir arquivo");
