@@ -21,6 +21,13 @@ void generateCodes(Node* root, char* path, int depth, char* codes[256]);
 void compress(const char* filePath, const char* fileOutput);
 
 int main(int argc, char* argv[]) {
+
+    if (argc != 3) {
+        printf("Uso: %s <arquivo_entrada> <arquivo_saida>\n", argv[0]);
+        return 1;
+    }
+
+    compress(argv[1], argv[2]);
     
     // conta frequência
     int* freq = CountFrequency(argv[1]);
@@ -48,7 +55,7 @@ int main(int argc, char* argv[]) {
             free(codes[i]);
         }
     }
-    
+
     return 0;
 }
 
@@ -57,7 +64,7 @@ int main(int argc, char* argv[]) {
 int* CountFrequency(const char fileName[]){
     // aloca memoria para 256 inteiros e inicializa com zero
     int *frequency = calloc(256, sizeof(int));
-    
+
     if (!frequency) {
         perror("Erro ao alocar memória para frequências");
         return NULL;
@@ -80,7 +87,7 @@ int* CountFrequency(const char fileName[]){
     fclose(file);
     file = NULL;
 
-    
+
     return frequency;
 }
 
@@ -88,7 +95,7 @@ int* CountFrequency(const char fileName[]){
 Node* createNode(unsigned char character, int frequency){
     // aloca memória para um novo nó
     Node *node = (Node*)malloc(sizeof(Node));
-    
+
     if (!node) {
         return NULL;
     }
@@ -138,7 +145,7 @@ Node* buildHuffmanTree(Node* nodes[], int count){
         newNode->left = left;
         newNode->right = right;
 
-        
+
         // move todos os nós restantes 2 posicoes para tras
         for(int i = 2; i < count; i++){
             nodes[i - 2] = nodes[i];
@@ -169,7 +176,7 @@ void generateCodes(Node* root, char* path, int depth, char* codes[256]){
     //esquerda = 0
     path[depth] = '0';
     generateCodes(root->left, path, depth + 1, codes);
-    
+
     //direita = 1
     path[depth] = '1';
     generateCodes(root->right, path, depth + 1, codes);
@@ -189,15 +196,58 @@ void compress(const char* filePath, const char* fileOutput) {
 
     int* freq = CountFrequency(filePath);
     if(!freq) return;
-    
+
     // cria lista de nós, constroi árvore, gera codigos
     Node* nodeList[256];
     int count = generateNodeList(freq, nodeList);
     qsort(nodeList, count, sizeof(Node*), compareNode);
     Node* root = buildHuffmanTree(nodeList, count);
-    
-    // abre arquivos para leitura e escrita
+
+    //gerar codigos
+    char* codes[256] = {0};
+    char path[256];
+    generateCodes(root, path, 0, codes);
+
+    // abrir arquivo de saida pra escrita
+    FILE* output = fopen(fileOutput, "wb");
+    if(!output){
+        perror("Erro ao abrir arquivo para escrita");
+        return;
+    }
+
     // salva metadados
+    fwrite(freq, sizeof(int), 256, output);
+
     // le arquivo original, escreve códigos em bits no arquivo destino
+    unsigned char buffer = 0;
+    int bitCount = 0;
+
+    int c;
+    while ((c = fgetc(file)) != EOF) {
+        const char* code = codes[c];
+        for (int i = 0; code[i] != '\0'; i++) {
+            buffer <<= 1;
+            if (code[i] == '1') buffer |= 1;
+            bitCount++;
+
+            if (bitCount == 8) {
+                fwrite(&buffer, 1, 1, output);
+                buffer = 0;
+                bitCount = 0;
+            }
+        }
+    }
+    // escrever bits restantes se houver
+    if (bitCount > 0) {
+        buffer <<= (8 - bitCount); // completar os bits restantes com 0
+        fwrite(&buffer, 1, 1, output);
+    }
+
     // fecha arquivos e limpa memória
+    fclose(file);
+    fclose(output);
+    for(int i=0; i<256; i++) {
+        if(codes[i]) free(codes[i]);
+    }
+    free(freq);
 }
