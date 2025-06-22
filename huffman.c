@@ -5,68 +5,10 @@
 #define MAX_NODES 256
 
 // le um arquivo e conta a frequência de cada byte
-// cria e inicializa um novo nó da árvore de Huffman com caractere e frequência
-// funcao de comparcao usada para ordenar os nós por frequência
-// gera uma lista de nós a partir do array de frequências
-// constrói a árvore de Huffman a partir de uma lista de nós com caracteres e suas frequência
-// percorre a árvore de Huffman e gera os códigos binários para cada caractere folha
-// compacta o arquivo original usando huffman e grava o resultado no arquivo de saida
-// descompacta o arquivo comprimido com Huffman e grava o resultado no arquivo de saida
-
-int* CountFrequency(const char fileName[]);
-Node* createNode(unsigned char character, int frequency);
-int compareNode(const void* a, const void* b);
-int generateNodeList(int* frequency, Node* nodeList[]);
-Node* buildHuffmanTree(Node* nodes[], int count);
-void generateCodes(Node* root, char* path, int depth, char* codes[256]);
-void compress(const char* filePath, const char* fileOutput);
-void decompress(const char* inputPath, const char* outputPath);
-
-int main(int argc, char* argv[]) {
-
-    if (argc != 3) {
-        printf("Uso: %s <arquivo_entrada> <arquivo_saida>\n", argv[0]);
-        return 1;
-    }
-
-    compress(argv[1], argv[2]);
-    
-    // conta frequência
-    int* freq = CountFrequency(argv[1]);
-    if(!freq) return 1;
-
-    // cria lista de nós
-    Node* nodeList[256];
-    int count = generateNodeList(freq, nodeList);
-    free(freq);
-
-    // ordena os nós por frequência
-    qsort(nodeList, count, sizeof(Node*), compareNode);
-
-    // constroi a árvore de huffma
-    Node* raiz = buildHuffmanTree(nodeList, count);
-
-    char* codes[256] = {0}; // vetor para armazenar os codigos
-    char path[256];         // caminho temporário para montar os codigo
-
-    generateCodes(raiz, path, 0, codes);
-
-    for(int i = 0; i < 256; i++){
-        if(codes[i]){
-            printf("'%c' (%d): %s\n", (char)i, i, codes[i]);
-            free(codes[i]);
-        }
-    }
-
-    return 0;
-}
-
-
-// le um arquivo e conta a frequência de cada byte
 int* CountFrequency(const char fileName[]){
     // aloca memoria para 256 inteiros e inicializa com zero
     int *frequency = calloc(256, sizeof(int));
-
+    
     if (!frequency) {
         perror("Erro ao alocar memória para frequências");
         return NULL;
@@ -256,24 +198,50 @@ void compress(const char* filePath, const char* outputPath) {
 
 // descompacta o arquivo comprimido com huffman e grava o resultado no arquivo de saída
 void decompress(const char* filePath, const char* outputPath) {
-    
-   // abre o arquivo compactado para leitura em modo binario
+
+    // abre o arquivo compactado para leitura em modo binario
     FILE* file = fopen(filePath, "rb");
     if(!file){
         perror("Erro ao abrir arquivo compactado");
         return;
     }
+
+    // abre o arquivo de saída para escrita em modo binario
+    FILE* output = fopen(outputPath, "wb");
+    if(!output){
+        perror("Erro ao criar arquivo de saída");
+        fclose(file);
+        return;
+    }
+
+    // le o cabeçalho: as frequências dos 256 bytes (metadados salvos na compressao)
+    int freq[256];
+    fread(freq, sizeof(int), 256, file);
+
+    // reconstrói a árvore de huffman usando as frequências lidas
+    Node* nodeList[256];
+    int count = generateNodeList(freq, nodeList);
+    qsort(nodeList, count, sizeof(Node*), compareNode);
+    Node* root = buildHuffmanTree(nodeList, count);
     
-   // abre o arquivo de saída para escrita em modo binario
-   FILE* output = fopen(outputPath, "wb");
-   if(!output){
-       perror("Erro ao criar arquivo de saída");
-       fclose(file);
-       return;
-   }
-    
-   // le o cabeçalho: as frequências dos 256 bytes (metadados salvos na compressao)
-   // reconstrói a árvore de huffman usando as frequências lidas
-   // percorre os bits do arquivo compactado e reconstrói o conteudo original
-   // fecha os arquivos e libera a memória usada
+    // percorre os bits do arquivo compactado e reconstrói o conteudo original
+    Node* current = root;
+    int byte;
+    while ((byte = fgetc(file)) != EOF) {
+        for (int i = 7; i >= 0; i--) {
+            int bit = (byte >> i) & 1; // extrai bit da esquerda para direita
+
+            // navega pela arvore de acordo com o bit
+            current = (bit == 0) ? current->left : current->right;
+
+            // se chegou a um caractere (folha), escreve no arquivo de saída
+            if (current->left == NULL && current->right == NULL) {
+                fputc(current->character, output);
+                current = root; // volta para o início da arvore
+            }
+        }
+    }
+    // fecha os arquivos e libera a memória usada
+    fclose(file);
+    fclose(output);
 }
