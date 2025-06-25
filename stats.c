@@ -33,8 +33,8 @@ void printCompressionStats(const char* originalPath, const char* compressedPath)
     while (cSize >= 1024 && u2 < 3) { cSize /= 1024.0; u2++; }
 
     printf(BLUE "\n--- Estatísticas de Compressão ---\n" RESET);
-    printf(BLUE "Tamanho original: %.2f %s\n" RESET, oSize, units[u1]);
-    printf(BLUE "Tamanho compactado: %.2f %s\n" RESET, cSize, units[u2]);
+    printf("Tamanho original: %.2f %s\n", oSize, units[u1]);
+    printf("Tamanho compactado: %.2f %s\n", cSize, units[u2]);
 
     if (ratio >= 0)
         printf("Economia: %.2f%%\n", ratio);

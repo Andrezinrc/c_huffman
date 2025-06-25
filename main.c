@@ -11,6 +11,11 @@ int main(int argc, char* argv[]) {
     }
 
     if (strcmp(argv[1], "compress") == 0) {
+        printf(BLUE "======================================\n" RESET);
+        printf(BLUE "             HUFFPACK 1.0\n" RESET);
+        printf(BLUE "    Huffman-Based Folder Compressor\n" RESET);
+        printf(BLUE "======================================\n" RESET);
+        printf(BLUE "   Desenvolvido por Andrecode ©2025\n\n" RESET);
         printf(GREEN "Iniciando compactação...\n" RESET);
         compress(argv[2], argv[3]);
         printf(GREEN "Arquivo compactado com sucesso!\n" RESET);
