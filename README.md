@@ -2,6 +2,10 @@
 
 Implementação simples do algoritmo de compressão de Huffman em C
 
+## Interface no terminal
+
+![Interface do programa](terminal-interface.jpeg)
+
 ## Compilação
 
 ```bash
