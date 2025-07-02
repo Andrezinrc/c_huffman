@@ -391,7 +391,7 @@ void decompress(const char* filePath, const char* outputPath) {
         }
     }
     printf("\n");
-    
+
     // fecha os arquivos e libera a memória usada
     fclose(file);
     fclose(output);
@@ -441,6 +441,39 @@ void compressSingleFileToStream(const char* filePath, const char* relativePath, 
     unsigned char buffer = 0;
     int bitCount = 0;
     int c;
+
+    // codifica os dados byte a byte usando huffman e grava os bits compactados no arquivo
+    while ((c = fgetc(file)) != EOF) {
+        const char* code = codes[c];
+        for (int i = 0; code[i] != '\0'; i++) {
+            buffer <<= 1;
+            if (code[i] == '1') buffer |= 1;
+            bitCount++;
+
+            // quando 8 bits sao preenchidos,
+            //grava o byte no arquivo
+            if (bitCount == 8) {
+                fwrite(&buffer, 1, 1, output);
+                buffer = 0;
+                bitCount = 0;
+            }
+        }
+    }
+
+    // Se restaram bits nao gravados,
+    // preenche com zeros a direita e grava o ultimo byte
+    if (bitCount > 0) {
+        buffer <<= (8 - bitCount);
+        fwrite(&buffer, 1, 1, output);
+    }
+
+    // libera memoria
+    fclose(file);
+    free(freq);
+    for (int i = 0; i < 256; i++) {
+        if (codes[i]) free(codes[i]);
+    }
+    freeTree(root);
 }
 
 // percorre a pasta recursivamente e compacta todos os arquivos encontrados
