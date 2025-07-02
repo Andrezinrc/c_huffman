@@ -1,14 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <dirent.h>
 #include <libgen.h>
 #include <stdint.h>
+
 #include "huffman.h"
 #include "colors.h"
-#include <string.h>
-#include <errno.h>
+
 #define MAX_NODES 256
 
 // verifica se o caminho fornecido é um diretorio
@@ -394,3 +396,17 @@ void decompress(const char* filePath, const char* outputPath) {
     fclose(file);
     fclose(output);
 }
+
+// compacta um unico arquivo e grava no .huff com caminho relativo e metadados
+void compressSingleFileToStream(const char* filePath, const char* relativePath, FILE* output) {
+
+}
+
+// percorre a pasta recursivamente e compacta todos os arquivos encontrados
+void walkAndCompress(const char* basePath, const char* currentPath, FILE* output) {}
+
+// compacta uma pasta inteira em um único arquivo .huff
+void compressFolder(const char* folderPath, const char* outputHuff) {}
+
+// descompacta arquivos de um .huff, recriando pastas e arquivos no destino
+void decompressFolderFromHuff(const char* huffPath, const char* outputDir) {}
