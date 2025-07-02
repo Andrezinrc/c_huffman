@@ -399,7 +399,48 @@ void decompress(const char* filePath, const char* outputPath) {
 
 // compacta um unico arquivo e grava no .huff com caminho relativo e metadados
 void compressSingleFileToStream(const char* filePath, const char* relativePath, FILE* output) {
+    FILE* file = fopen(filePath, "rb");
+    if (!file) {
+        fprintf(stderr, "Erro ao abrir arquivo %s\n", filePath);
+        return;
+    }
 
+    // calcula frequencia dos bytes
+    int* freq = CountFrequency(filePath);
+    if (!freq) {
+        fclose(file);
+        return;
+    }
+
+    // cria arvore de huffman e gera os codigos
+    Node* nodeList[256];
+    int count = generateNodeList(freq, nodeList);
+    qsort(nodeList, count, sizeof(Node*), compareNode);
+    Node* root = buildHuffmanTree(nodeList, count);
+
+    char* codes[256] = {0};
+    char path[256];
+    generateCodes(root, path, 0, codes);
+
+    // escreve caminho relativo
+    uint16_t pathLen = (uint16_t)strlen(relativePath);
+    fwrite(&pathLen, sizeof(uint16_t), 1, output);
+    fwrite(relativePath, 1, pathLen, output);
+
+    // escreve tamanho original do arquivo
+    fseek(file, 0, SEEK_END);
+    long fileSize = ftell(file);
+    rewind(file);
+    uint32_t fileSize32 = (uint32_t)fileSize;
+    fwrite(&fileSize32, sizeof(uint32_t), 1, output);
+
+    // escreve tabela de frequência
+    fwrite(freq, sizeof(int), 256, output);
+
+    // codifica os dados e grava bit a bit
+    unsigned char buffer = 0;
+    int bitCount = 0;
+    int c;
 }
 
 // percorre a pasta recursivamente e compacta todos os arquivos encontrados
