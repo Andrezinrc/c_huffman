@@ -1,8 +1,27 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "huffman.h"
+#include "colors.h"
 #include <string.h>
+#include <errno.h>
 #define MAX_NODES 256
+
+// terminal candy: simple progress bar
+void showProgressBar(int percent) {
+    int barWidth = 50;
+    int pos = (percent * barWidth) / 100;
+
+    printf("\r["); // \r volta pro começo da linha
+    for (int i = 0; i < barWidth; ++i) {
+        if (i < pos)
+            printf("█");
+        else
+            printf(" ");
+    }
+    printf("] %d%%", percent);
+    fflush(stdout); // força o terminal a atualizar a linha
+}
 
 // le um arquivo e conta a frequência de cada byte
 int* CountFrequency(const char fileName[]){
@@ -10,14 +29,14 @@ int* CountFrequency(const char fileName[]){
     int *frequency = calloc(256, sizeof(int));
 
     if (!frequency) {
-        perror("Erro ao alocar memória para frequências");
+        fprintf(stderr, RED "Erro ao alocar memória para frequências: %s\n" RESET, strerror(errno));
         return NULL;
     }
 
     // abre o arquivo em modo binário de leitura
     FILE *file = fopen(fileName, "rb");
     if (file == NULL) {
-        printf("Erro ao abrir arquivo");
+        printf(RED "Erro ao abrir arquivo" RESET);
         free(frequency);
         return NULL;
     }
@@ -138,9 +157,13 @@ void compress(const char* filePath, const char* outputPath) {
     // conta frequencia
     FILE *file = fopen(filePath, "rb");
     if(!file){
-        perror("Erro ao abrir arquivo");
+        fprintf(stderr, RED "Erro ao abrir arquivo: %s\n" RESET, strerror(errno));
         return;
     }
+
+    fseek(file, 0, SEEK_END); // vai ate o fim
+    long fileSize = ftell(file); // pega o tamanho
+    rewind(file); // volta pro começo
 
     int* freq = CountFrequency(filePath);
     if(!freq) return;
@@ -159,7 +182,7 @@ void compress(const char* filePath, const char* outputPath) {
     // abrir arquivo de saida pra escrita
     FILE* output = fopen(outputPath, "wb");
     if(!output){
-        perror("Erro ao abrir arquivo para escrita");
+        fprintf(stderr, RED "Erro ao abrir arquivo para escrita %s\n" RESET, strerror(errno));
         return;
     }
 
@@ -184,10 +207,13 @@ void compress(const char* filePath, const char* outputPath) {
     // le arquivo original, escreve códigos em bits no arquivo destino
     unsigned char buffer = 0;
     int bitCount = 0;
+    long processed = 0;
+    int lastPercent = -1;
 
     int c;
     while ((c = fgetc(file)) != EOF) {
         const char* code = codes[c];
+
         for (int i = 0; code[i] != '\0'; i++) {
             buffer <<= 1;
             if (code[i] == '1') buffer |= 1;
@@ -199,7 +225,16 @@ void compress(const char* filePath, const char* outputPath) {
                 bitCount = 0;
             }
         }
+
+        processed++;
+        int percent = (processed * 100) / fileSize;
+        if (percent != lastPercent) {
+            showProgressBar(percent);
+            lastPercent = percent;
+        }
     }
+    printf("\n");
+
     // escrever bits restantes se houver
     if (bitCount > 0) {
         buffer <<= (8 - bitCount); // completar os bits restantes com 0
@@ -221,14 +256,20 @@ void decompress(const char* filePath, const char* outputPath) {
     // abre o arquivo compactado para leitura em modo binario
     FILE* file = fopen(filePath, "rb");
     if(!file){
-        perror("Erro ao abrir arquivo compactado");
+        fprintf(stderr, RED "Erro ao abrir arquivo compactado %s\n" RESET, strerror(errno));
         return;
     }
+
+    // pega tamanho do arquivo .huff
+    fseek(file, 0, SEEK_END);
+    long fileSize = ftell(file);
+    rewind(file);
+
 
     // abre o arquivo de saída para escrita em modo binario
     FILE* output = fopen(outputPath, "wb");
     if(!output){
-        perror("Erro ao criar arquivo de saída");
+        fprintf(stderr, RED "Erro ao criar arquivo de saída %s\n" RESET, strerror(errno));
         fclose(file);
         return;
     }
@@ -239,7 +280,7 @@ void decompress(const char* filePath, const char* outputPath) {
 
     // le quantos caracteres unicos foram salvos no cabeçalho
     if (fread(&uniqueCount, sizeof(int), 1, file) != 1) {
-        fprintf(stderr, "Erro ao ler uniqueCount\n");
+        fprintf(stderr, RED "Erro ao ler uniqueCount %s\n" RESET, strerror(errno));
         fclose(file);
         fclose(output);
         return;
@@ -261,7 +302,7 @@ void decompress(const char* filePath, const char* outputPath) {
     Node* root = buildHuffmanTree(nodeList, count);
 
     if (!root) {
-        printf("Erro: arvore de huffman vazia.\n");
+        printf(RED "Erro: arvore de huffman vazia.\n" RESET);
         fclose(file);
         fclose(output);
         return;
@@ -269,6 +310,9 @@ void decompress(const char* filePath, const char* outputPath) {
 
     // percorre os bits do arquivo compactado e reconstrói o conteudo original
     Node* current = root;
+    long processed = 0;
+    int lastPercent = -1;
+
     int byte;
     while ((byte = fgetc(file)) != EOF) {
         for (int i = 7; i >= 0; i--) {
@@ -284,7 +328,17 @@ void decompress(const char* filePath, const char* outputPath) {
                 current = root; // volta para o início da arvore
             }
         }
+
+        // barra de progresso
+        processed++;
+        int percent = (processed * 100) / fileSize;
+        if (percent != lastPercent) {
+            showProgressBar(percent);
+            lastPercent = percent;
+        }
     }
+    printf("\n");
+    
     // fecha os arquivos e libera a memória usada
     fclose(file);
     fclose(output);

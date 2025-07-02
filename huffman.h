@@ -9,6 +9,7 @@ typedef struct Node {
     struct Node *right;       // filho direito
 } Node;
 
+// terminal candy: simple progress bar
 // le um arquivo e conta a frequência de cada byte
 // cria e inicializa um novo nó da árvore de Huffman com caractere e frequência
 // funcao de comparcao usada para ordenar os nós por frequência
@@ -18,6 +19,7 @@ typedef struct Node {
 // compacta o arquivo original usando huffman e grava o resultado no arquivo de saida
 // descompacta o arquivo comprimido com Huffman e grava o resultado no arquivo de saida
 
+void showProgressBar(int percent);
 int* CountFrequency(const char fileName[]);
 Node* createNode(unsigned char character, int frequency);
 int compareNode(const void* a, const void* b);
