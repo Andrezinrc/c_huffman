@@ -4,21 +4,18 @@
 #include "stats.h"
 #include "colors.h"
 #include "help.h"
+#include "header.h"
+
 
 int main(int argc, char* argv[]) {
-    printf("\033[2J\033[H");
-    printf(BLUE "======================================\n" RESET);
-    printf(BLUE "             HUFFPACK 1.0\n" RESET);
-    printf(BLUE "    Huffman-Based Folder Compressor\n" RESET);
-    printf(BLUE "======================================\n" RESET);
-    printf("   Desenvolvido por Andrecode ©2025\n\n");
-
     if (argc < 2 || strcmp(argv[1], "help") == 0) {
         printUsage(argv[0]);
         return 0;
     }
 
     if (strcmp(argv[1], "compress") == 0) {
+        print_header("compress");
+        
         if (argc != 4) {
             printUsage(argv[0]);
             return 1;
@@ -29,6 +26,8 @@ int main(int argc, char* argv[]) {
         printCompressionStats(argv[2], argv[3]);
 
     } else if (strcmp(argv[1], "decompress") == 0) {
+        print_header("decompress");
+        
         if (argc != 4) {
             printUsage(argv[0]);
             return 1;

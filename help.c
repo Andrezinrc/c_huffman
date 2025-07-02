@@ -4,6 +4,7 @@
 
 // imprime os comandos disponiveis
 void printUsage(const char *programName) {
+    printf("\033[2J\033[H");
     printf(BLUE "Uso:\n" RESET);
     printf("  %s compress <entrada> <saida.huff>\n", programName);
     printf("  %s decompress <entrada.huff> <saida>\n", programName);
