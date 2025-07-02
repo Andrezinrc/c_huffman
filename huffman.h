@@ -9,6 +9,16 @@ typedef struct Node {
     struct Node *right;       // filho direito
 } Node;
 
+#include <stdio.h>
+
+// verifica se um caminho é um diretorio
+// libera a memória da arvore de huffman
+// cria diretorios ausentes para um caminho de arquivo
+
+int isDirectory(const char* path);
+void freeTree(Node* root);
+void createDirsForFile(const char* filePath);
+
 // terminal candy: simple progress bar
 // le um arquivo e conta a frequência de cada byte
 // cria e inicializa um novo nó da árvore de Huffman com caractere e frequência
@@ -18,7 +28,7 @@ typedef struct Node {
 // percorre a árvore de Huffman e gera os códigos binários para cada caractere folha
 // compacta o arquivo original usando huffman e grava o resultado no arquivo de saida
 // descompacta o arquivo comprimido com Huffman e grava o resultado no arquivo de saida
-
+    
 void showProgressBar(int percent);
 int* CountFrequency(const char fileName[]);
 Node* createNode(unsigned char character, int frequency);

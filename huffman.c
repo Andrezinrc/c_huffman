@@ -1,11 +1,62 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <dirent.h>
+#include <libgen.h>
+#include <stdint.h>
 #include "huffman.h"
 #include "colors.h"
 #include <string.h>
 #include <errno.h>
 #define MAX_NODES 256
+
+// verifica se o caminho fornecido é um diretorio
+// retorna 1 se for diretorio, 0 caso contrario ou erro
+int isDirectory(const char* path) {
+    struct stat st;
+    if (stat(path, &st) != 0) return 0;
+    return S_ISDIR(st.st_mode);
+}
+
+// libera recursivamente a memoria da arvore de huffman
+// percorre os nós em pós ordem, liberando todos os nós filhos antes do nó atual
+void freeTree(Node* root) {
+    if (!root) return;
+    freeTree(root->left);
+    freeTree(root->right);
+    free(root);
+}
+
+// cria diretorios ausentes para um caminho de arquivo
+void createDirsForFile(const char* filePath) {
+    // faz uma copia do caminho porque-
+    //dirname pode modificar a string original
+    char pathCopy[1024];
+    strncpy(pathCopy, filePath, sizeof(pathCopy));
+
+    // extrai apenas a parte do diretório
+    char* dirPath = dirname(pathCopy);
+
+    // 'temp' para construir o caminho incrementalmente
+    char temp[1024];
+    strcpy(temp, "");
+
+    // divide o caminho por barras "/" e cria diretorios um a um
+    char* token = strtok(dirPath, "/");
+    while (token != NULL) {
+        strcat(temp, token);
+        strcat(temp, "/");
+
+        // se o diretorio ainda nao existe,
+        //cria com permissoes 0777
+        if (access(temp, F_OK) != 0) {
+            mkdir(temp, 0777);
+        }
+
+        token = strtok(NULL, "/");
+    }
+}
 
 // terminal candy: simple progress bar
 void showProgressBar(int percent) {
