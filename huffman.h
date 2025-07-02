@@ -36,7 +36,15 @@ int compareNode(const void* a, const void* b);
 int generateNodeList(int* frequency, Node* nodeList[]);
 Node* buildHuffmanTree(Node* nodes[], int count);
 void generateCodes(Node* root, char* path, int depth, char* codes[256]);
+
+// funcoes principais para compressao
 void compress(const char* filePath, const char* outputPath);
+void compressSingleFileToStream(const char* filePath, const char* relativePath, FILE* output);
+void walkAndCompress(const char* basePath, const char* currentPath, FILE* output);
+void compressFolder(const char* folderPath, const char* outputHuff);
+
+// funcao para descompressao
 void decompress(const char* filePath, const char* outputPath);
+void decompressFolderFromHuff(const char* huffPath, const char* outputDir);
 
 #endif
