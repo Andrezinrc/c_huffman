@@ -536,5 +536,9 @@ void compressFolder(const char* folderPath, const char* outputHuff) {
 
 // descompacta arquivos de um .huff, recriando pastas e arquivos no destino
 void decompressFolderFromHuff(const char* huffPath, const char* outputDir) {
-
+    FILE* input = fopen(huffPath, "rb");
+    if (!input) {
+        fprintf(stderr, "Erro ao abrir arquivo .huff\n");
+        return;
+    }
 }
