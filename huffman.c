@@ -437,10 +437,11 @@ void compressSingleFileToStream(const char* filePath, const char* relativePath, 
     // escreve tabela de frequência
     fwrite(freq, sizeof(int), 256, output);
 
-    // codifica os dados e grava bit a bit
     unsigned char buffer = 0;
     int bitCount = 0;
     int c;
+    long bytesRead = 0;
+    int lastPercent = -1;
 
     // codifica os dados byte a byte usando huffman e grava os bits compactados no arquivo
     while ((c = fgetc(file)) != EOF) {
@@ -458,7 +459,17 @@ void compressSingleFileToStream(const char* filePath, const char* relativePath, 
                 bitCount = 0;
             }
         }
+        bytesRead++;
+
+        // atualiza barra de progresso a cada 1% lido
+        int percent = (int)((bytesRead * 100) / fileSize32);
+        if (percent != lastPercent) {
+            showProgressBar(percent);
+            lastPercent = percent;
+        }
     }
+    printf("\n");
+
 
     // Se restaram bits nao gravados,
     // preenche com zeros a direita e grava o ultimo byte
@@ -585,7 +596,8 @@ void decompressFolderFromHuff(const char* huffPath, const char* outputDir) {
         Node* current = root;
         unsigned char byte;
         int decodedBytes = 0;
-
+        int lastPercent = -1;
+    
         // percorre os bits do arquivo ate alcançar o tamanho original
         while (decodedBytes < originalSize && fread(&byte, 1, 1, input) == 1) {
             // percorre os bits do byte atual, do mais significativo ao menos
@@ -598,12 +610,20 @@ void decompressFolderFromHuff(const char* huffPath, const char* outputDir) {
                     fputc(current->character, outFile);
                     current = root;
                     decodedBytes++;
-
+                    
+                    // atualiza barra de progresso a cada 1% decodificado
+                    int percent = (int)((decodedBytes * 100) / originalSize);
+                    if (percent != lastPercent) {
+                        showProgressBar(percent);
+                        lastPercent = percent;
+                    }
+                    
                     // se ja escreveu todos os bytes esperados, sai
                     if (decodedBytes == originalSize) break;
                 }
             }
         }
+        printf("\n");
 
         // fecha o arquivo de saida e libera a arvore de huffman
         fclose(outFile);
