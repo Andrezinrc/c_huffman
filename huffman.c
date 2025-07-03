@@ -530,7 +530,7 @@ void compressFolder(const char* folderPath, const char* outputHuff) {
 
     // inicia compressao recursiva da pasta
     walkAndCompress(folderPath, "", output);
-    
+
     fclose(output);
 }
 
@@ -540,5 +540,29 @@ void decompressFolderFromHuff(const char* huffPath, const char* outputDir) {
     if (!input) {
         fprintf(stderr, "Erro ao abrir arquivo .huff\n");
         return;
+    }
+
+    while (!feof(input)) {
+        // le tamanho do caminho relativo
+        uint16_t pathLen;
+        if (fread(&pathLen, sizeof(uint16_t), 1, input) != 1) break;
+
+        // le caminho relativo
+        char relativePath[1024] = {0};
+        fread(relativePath, 1, pathLen, input);
+
+        // le tamanho original do arquivo
+        uint32_t originalSize;
+        fread(&originalSize, sizeof(uint32_t), 1, input);
+
+        // le tabela de frequência
+        int freq[256];
+        fread(freq, sizeof(int), 256, input);
+
+        // gera arvore de huffman a partir da frequência
+        Node* nodeList[256];
+        int count = generateNodeList(freq, nodeList);
+        qsort(nodeList, count, sizeof(Node*), compareNode);
+        Node* root = buildHuffmanTree(nodeList, count);
     }
 }
