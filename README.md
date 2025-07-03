@@ -9,7 +9,7 @@ Implementação simples do algoritmo de compressão de Huffman em C
 ## Compilação
 
 ```bash
-gcc main.c huffman.c stats.c help.c header.c -o main
+gcc -std=gnu99 main.c huffman.c stats.c help.c header.c -o huffman
 ```
 
 ## Uso
