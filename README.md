@@ -15,8 +15,8 @@ gcc -std=gnu99 main.c huffman.c stats.c help.c header.c -o huffman
 ## Uso
 
 ```bash
-./huffman compress entrada.txt texto_compactado.huff
-./huffman decompress texto_compactado.huff texto_descompactado.txt
+./huffman compress /caminho/para/arquivo_ou_pasta
+./huffman decompress /caminho/para/arquivo_compactado.adr
 ```
 ## Como contribuir
 
