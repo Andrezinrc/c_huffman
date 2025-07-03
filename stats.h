@@ -8,8 +8,8 @@ long getFileSize(const char* filePath);
 long getFolderSize(const char* path);
 
 // imprime estatisticas de compressão: tamanho original, tamanho compactado e economia percentual
-void printCompressionStats(const char* originalPath, const char* compressedPath);
+void printCompressionStats(const char* originalPath);
 
 // imprime estatisticas de descompactacao: tamanhos e recuperacao percentual
-void printDecompressionStats(const char* compressedPath, const char* outputPath);
+void printDecompressionStats(const char* compressedPath);
 #endif

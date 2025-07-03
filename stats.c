@@ -53,7 +53,11 @@ long getFolderSize(const char* path) {
 }
 
 // imprime estatisticas de compressão: tamanho original, tamanho compactado e economia percentual
-void printCompressionStats(const char* originalPath, const char* compressedPath) {
+void printCompressionStats(const char* originalPath) {
+    // calcula caminho do arquivo compactado automaticamente
+    char compressedPath[1024];
+    snprintf(compressedPath, sizeof(compressedPath), "%s.adr", originalPath);
+
     long originalSize = getFileSize(originalPath); // tamanho antes da compressao
     long compressedSize = getFileSize(compressedPath); // tamanho após compressao
 
@@ -85,9 +89,21 @@ void printCompressionStats(const char* originalPath, const char* compressedPath)
 }
 
 // imprime estatisticas de descompactacao: tamanhos e recuperacao percentual
-void printDecompressionStats(const char* compressedPath, const char* outputPath) {
-    // obtem tamanho do arquivo .huff
+void printDecompressionStats(const char* compressedPath) {
+    // obtem tamanho do arquivo .adr
     long compressedSize = getFileSize(compressedPath);
+
+    // remove extensão .adr para descobrir a pasta ou arquivo descompactado
+    char outputPath[1024];
+    strcpy(outputPath, compressedPath);
+    char* ext = strrchr(outputPath, '.');
+    if (ext && strcmp(ext, ".adr") == 0) {
+        *ext = '\0'; // remove extensão
+    } else {
+        printf(RED "Arquivo compactado inválido (sem extensão .adr)\n" RESET);
+        return;
+    }
+
     // obtem tamanho total da pasta descompactada
     long extractedSize = getFolderSize(outputPath);
 
