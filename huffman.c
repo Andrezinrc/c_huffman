@@ -477,7 +477,16 @@ void compressSingleFileToStream(const char* filePath, const char* relativePath, 
 }
 
 // percorre a pasta recursivamente e compacta todos os arquivos encontrados
-void walkAndCompress(const char* basePath, const char* currentPath, FILE* output) {}
+void walkAndCompress(const char* basePath, const char* currentPath, FILE* output) {
+    char fullPath[1024];
+    snprintf(fullPath, sizeof(fullPath), "%s/%s", basePath, currentPath);
+
+    DIR* dir = opendir(fullPath);
+    if (!dir) {
+        fprintf(stderr, "Erro ao abrir diretório: %s\n", fullPath);
+        return;
+    }
+}
 
 // compacta uma pasta inteira em um único arquivo .huff
 void compressFolder(const char* folderPath, const char* outputHuff) {}
