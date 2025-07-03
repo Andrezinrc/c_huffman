@@ -564,5 +564,26 @@ void decompressFolderFromHuff(const char* huffPath, const char* outputDir) {
         int count = generateNodeList(freq, nodeList);
         qsort(nodeList, count, sizeof(Node*), compareNode);
         Node* root = buildHuffmanTree(nodeList, count);
+
+        // monta caminho completo para o arquivo a ser criado
+        char fullPath[2048];
+        snprintf(fullPath, sizeof(fullPath), "%s/%s", outputDir, relativePath);
+
+        // cria diretorios necessários para o caminho do arquivo
+        createDirsForFile(fullPath);
+
+        // abre o arquivo para escrita
+        FILE* outFile = fopen(fullPath, "wb");
+        if (!outFile) {
+            fprintf(stderr, "Erro ao criar arquivo %s\n", fullPath);
+            freeTree(root);
+            break;
+        }
+
+        // decodifica os bits do .huff-
+        // ate alcançar o tamanho original
+        Node* current = root;
+        unsigned char byte;
+        int decodedBytes = 0;
     }
 }
