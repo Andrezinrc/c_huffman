@@ -521,7 +521,20 @@ void walkAndCompress(const char* basePath, const char* currentPath, FILE* output
 }
 
 // compacta uma pasta inteira em um único arquivo .huff
-void compressFolder(const char* folderPath, const char* outputHuff) {}
+void compressFolder(const char* folderPath, const char* outputHuff) {
+    FILE* output = fopen(outputHuff, "wb");
+    if (!output) {
+        fprintf(stderr, "Erro ao criar arquivo de saída: %s\n", outputHuff);
+        return;
+    }
+
+    // inicia compressao recursiva da pasta
+    walkAndCompress(folderPath, "", output);
+    
+    fclose(output);
+}
 
 // descompacta arquivos de um .huff, recriando pastas e arquivos no destino
-void decompressFolderFromHuff(const char* huffPath, const char* outputDir) {}
+void decompressFolderFromHuff(const char* huffPath, const char* outputDir) {
+
+}
