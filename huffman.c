@@ -205,7 +205,7 @@ void generateCodes(Node* root, char* path, int depth, char* codes[256]){
 }
 
 // compacta o arquivo original usando huffman e grava o resultado no arquivo de saida
-void compress(const char* filePath, const char* outputPath) {
+void compress(const char* filePath) {
     // abre arquivos para leitura e escrita
     // conta frequencia
     FILE *file = fopen(filePath, "rb");
@@ -216,7 +216,14 @@ void compress(const char* filePath, const char* outputPath) {
 
     fseek(file, 0, SEEK_END); // vai ate o fim
     long fileSize = ftell(file); // pega o tamanho
-    rewind(file); // volta pro começo
+
+    if (fileSize == -1L) {
+        fprintf(stderr, RED "Erro ao obter tamanho do arquivo: %s\n" RESET, strerror(errno));
+        fclose(file);
+        return;
+    }
+
+    rewind(file);// volta pro começo
 
     int* freq = CountFrequency(filePath);
     if(!freq) return;
@@ -232,8 +239,11 @@ void compress(const char* filePath, const char* outputPath) {
     char path[256];
     generateCodes(root, path, 0, codes);
 
+    char outputFile[1024];
+    snprintf(outputFile, sizeof(outputFile), "%s.adr", filePath);
+
     // abrir arquivo de saida pra escrita
-    FILE* output = fopen(outputPath, "wb");
+    FILE* output = fopen(outputFile, "wb");
     if(!output){
         fprintf(stderr, RED "Erro ao abrir arquivo para escrita %s\n" RESET, strerror(errno));
         return;
@@ -304,7 +314,7 @@ void compress(const char* filePath, const char* outputPath) {
 }
 
 // descompacta o arquivo comprimido com huffman e grava o resultado no arquivo de saída
-void decompress(const char* filePath, const char* outputPath) {
+void decompress(const char* filePath) {
 
     // abre o arquivo compactado para leitura em modo binario
     FILE* file = fopen(filePath, "rb");
@@ -313,14 +323,29 @@ void decompress(const char* filePath, const char* outputPath) {
         return;
     }
 
-    // pega tamanho do arquivo .huff
+    // pega tamanho do arquivo .adr
     fseek(file, 0, SEEK_END);
     long fileSize = ftell(file);
     rewind(file);
 
+    if (fileSize == -1L) {
+        printf(YELLOW "Aviso: tamanho do arquivo não pôde ser obtido, barra de progresso pode não funcionar corretamente.\n" RESET);
+        fileSize = 0; // evita divisao
+    }
+
+
+    char outputFile[1024];
+    strncpy(outputFile, filePath, sizeof(outputFile));
+    outputFile[sizeof(outputFile) - 1] = '\0';
+
+    // remove a extensao .adr se existir
+    char* ext = strrchr(outputFile, '.');
+    if (ext && strcmp(ext, ".adr") == 0) {
+        *ext = '\0';  // corta a string no ponto do .adr
+    }
 
     // abre o arquivo de saída para escrita em modo binario
-    FILE* output = fopen(outputPath, "wb");
+    FILE* output = fopen(outputFile, "wb");
     if(!output){
         fprintf(stderr, RED "Erro ao criar arquivo de saída %s\n" RESET, strerror(errno));
         fclose(file);
@@ -471,7 +496,7 @@ void compressSingleFileToStream(const char* filePath, const char* relativePath, 
     printf("\n");
 
 
-    // Se restaram bits nao gravados,
+    // se restaram bits nao gravados,
     // preenche com zeros a direita e grava o ultimo byte
     if (bitCount > 0) {
         buffer <<= (8 - bitCount);
@@ -532,12 +557,19 @@ void walkAndCompress(const char* basePath, const char* currentPath, FILE* output
 }
 
 // compacta uma pasta inteira em um único arquivo .huff
-void compressFolder(const char* folderPath, const char* outputHuff) {
-    FILE* output = fopen(outputHuff, "wb");
+void compressFolder(const char* folderPath) {
+    char outputPath[1024];
+
+    // gera nome do arquivo .adr automaticamente
+    snprintf(outputPath, sizeof(outputPath), "%s.adr", folderPath);
+
+    FILE* output = fopen(outputPath, "wb");
     if (!output) {
-        fprintf(stderr, "Erro ao criar arquivo de saída: %s\n", outputHuff);
+        fprintf(stderr, "Erro ao criar arquivo de saída: %s\n", outputPath);
         return;
     }
+
+    printf("Compactando para: %s\n", outputPath);
 
     // inicia compressao recursiva da pasta
     walkAndCompress(folderPath, "", output);
@@ -546,7 +578,19 @@ void compressFolder(const char* folderPath, const char* outputHuff) {
 }
 
 // descompacta arquivos de um .huff, recriando pastas e arquivos no destino
-void decompressFolderFromHuff(const char* huffPath, const char* outputDir) {
+void decompressFolderFromHuff(const char* huffPath, char* outputDir) {
+    // extrai nome da pasta de destino removendo .adr
+    strncpy(outputDir, huffPath, 1024);
+    outputDir[1023] = '\0';
+
+    char* dot = strrchr(outputDir, '.');
+    if (dot && strcmp(dot, ".adr") == 0) {
+        *dot = '\0';  // remove o .adr
+    }
+
+    // cria pasta base de saída
+    mkdir(outputDir, 0755);
+
     FILE* input = fopen(huffPath, "rb");
     if (!input) {
         fprintf(stderr, "Erro ao abrir arquivo .huff\n");
@@ -592,7 +636,7 @@ void decompressFolderFromHuff(const char* huffPath, const char* outputDir) {
         }
 
         // decodifica os bits do .huff-
-        // ate alcançar o tamanho original
+        //ate alcançar o tamanho original
         Node* current = root;
         unsigned char byte;
         int decodedBytes = 0;
@@ -600,7 +644,6 @@ void decompressFolderFromHuff(const char* huffPath, const char* outputDir) {
     
         // percorre os bits do arquivo ate alcançar o tamanho original
         while (decodedBytes < originalSize && fread(&byte, 1, 1, input) == 1) {
-            // percorre os bits do byte atual, do mais significativo ao menos
             for (int i = 7; i >= 0; i--) {
                 int bit = (byte >> i) & 1;
                 current = bit ? current->right : current->left;
@@ -617,8 +660,7 @@ void decompressFolderFromHuff(const char* huffPath, const char* outputDir) {
                         showProgressBar(percent);
                         lastPercent = percent;
                     }
-                    
-                    // se ja escreveu todos os bytes esperados, sai
+
                     if (decodedBytes == originalSize) break;
                 }
             }
