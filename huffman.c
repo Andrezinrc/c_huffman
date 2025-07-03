@@ -486,6 +486,18 @@ void walkAndCompress(const char* basePath, const char* currentPath, FILE* output
         fprintf(stderr, "Erro ao abrir diretório: %s\n", fullPath);
         return;
     }
+
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
+
+        // constroi caminho relativo
+        char newCurrentPath[1024];
+        if (strlen(currentPath) > 0)
+            snprintf(newCurrentPath, sizeof(newCurrentPath), "%s/%s", currentPath, entry->d_name);
+        else
+            snprintf(newCurrentPath, sizeof(newCurrentPath), "%s", entry->d_name);
+    }
 }
 
 // compacta uma pasta inteira em um único arquivo .huff
