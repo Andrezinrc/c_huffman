@@ -41,10 +41,11 @@ int main(int argc, char* argv[]) {
 
         printf(GREEN "Iniciando descompactação...\n" RESET);
 
-        // ..
+        // descompacta sempre como pasta
+        decompressFolderFromHuff(argv[2], argv[3]);
 
         printf(GREEN "Arquivo descompactado com sucesso!\n" RESET);
-        printCompressionStats(argv[2], argv[3]);
+        printDecompressionStats(argv[2], argv[3]);
 
     } else {
         printf(RED "Comando inválido: %s\n" RESET, argv[1]);

@@ -585,5 +585,29 @@ void decompressFolderFromHuff(const char* huffPath, const char* outputDir) {
         Node* current = root;
         unsigned char byte;
         int decodedBytes = 0;
+
+        // percorre os bits do arquivo ate alcançar o tamanho original
+        while (decodedBytes < originalSize && fread(&byte, 1, 1, input) == 1) {
+            // percorre os bits do byte atual, do mais significativo ao menos
+            for (int i = 7; i >= 0; i--) {
+                int bit = (byte >> i) & 1;
+                current = bit ? current->right : current->left;
+
+                // se chegou a uma folha, escreve no arquivo
+                if (!current->left && !current->right) {
+                    fputc(current->character, outFile);
+                    current = root;
+                    decodedBytes++;
+
+                    // se ja escreveu todos os bytes esperados, sai
+                    if (decodedBytes == originalSize) break;
+                }
+            }
+        }
+
+        // fecha o arquivo de saida e libera a arvore de huffman
+        fclose(outFile);
+        freeTree(root);
     }
+    fclose(input);
 }
