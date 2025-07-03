@@ -497,7 +497,27 @@ void walkAndCompress(const char* basePath, const char* currentPath, FILE* output
             snprintf(newCurrentPath, sizeof(newCurrentPath), "%s/%s", currentPath, entry->d_name);
         else
             snprintf(newCurrentPath, sizeof(newCurrentPath), "%s", entry->d_name);
+
+
+        // obtem informacoes do caminho completo
+        char fullEntryPath[2048];
+        snprintf(fullEntryPath, sizeof(fullEntryPath), "%s/%s", basePath, newCurrentPath);
+
+        struct stat pathStat;
+        if (stat(fullEntryPath, &pathStat) == -1) {
+            perror("stat");
+            continue;
+        }
+
+        // se for diretorio, continua recursao; se for arquivo regular, comprime
+        if (S_ISDIR(pathStat.st_mode)) {
+            walkAndCompress(basePath, newCurrentPath, output); // recursao
+        } else if (S_ISREG(pathStat.st_mode)) {
+            compressSingleFileToStream(fullEntryPath, newCurrentPath, output);
+        }
     }
+
+    closedir(dir);
 }
 
 // compacta uma pasta inteira em um único arquivo .huff
