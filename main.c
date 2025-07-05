@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "huffman.h"
-#include "stats.h"
 #include "colors.h"
 #include "help.h"
 #include "header.h"
@@ -22,14 +21,9 @@ int main(int argc, char* argv[]) {
 
         printf(GREEN "Iniciando compactação...\n" RESET);
 
-        if (isDirectory(argv[2])) {
-            compressFolder(argv[2]);
-        } else {
-            compress(argv[2]);
-        }
+        compressEntry(argv[2]);
 
         printf(GREEN "Arquivo compactado com sucesso!\n" RESET);
-        printCompressionStats(argv[2]);
 
     } else if (strcmp(argv[1], "decompress") == 0) {
         print_header("decompress");
@@ -46,12 +40,12 @@ int main(int argc, char* argv[]) {
             printf(RED "Você deve fornecer o caminho para o arquivo .adr, não uma pasta.\n" RESET);
             return 1;
         } else {
-            char outputDir[1024];
-            decompressFolderFromHuff(argv[2], outputDir); // preenche outputDir
+            // nova funcao genérica que lida com .adr e define saida automaticamente
+            decompressEntry(argv[2]);
+
             printf(GREEN "Arquivo descompactado com sucesso!\n" RESET);
-            printDecompressionStats(argv[2]); // usa .adr para deduzir pasta
         }
-    }else {
+    } else {
         printf(RED "Comando inválido: %s\n" RESET, argv[1]);
         printUsage(argv[0]);
         return 1;
@@ -59,3 +53,4 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+

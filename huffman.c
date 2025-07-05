@@ -204,224 +204,6 @@ void generateCodes(Node* root, char* path, int depth, char* codes[256]){
     generateCodes(root->right, path, depth + 1, codes);
 }
 
-// compacta o arquivo original usando huffman e grava o resultado no arquivo de saida
-void compress(const char* filePath) {
-    // abre arquivos para leitura e escrita
-    // conta frequencia
-    FILE *file = fopen(filePath, "rb");
-    if(!file){
-        fprintf(stderr, RED "Erro ao abrir arquivo: %s\n" RESET, strerror(errno));
-        return;
-    }
-
-    fseek(file, 0, SEEK_END); // vai ate o fim
-    long fileSize = ftell(file); // pega o tamanho
-
-    if (fileSize == -1L) {
-        fprintf(stderr, RED "Erro ao obter tamanho do arquivo: %s\n" RESET, strerror(errno));
-        fclose(file);
-        return;
-    }
-
-    rewind(file);// volta pro começo
-
-    int* freq = CountFrequency(filePath);
-    if(!freq) return;
-
-    // cria lista de nós, constroi árvore, gera codigos
-    Node* nodeList[256];
-    int count = generateNodeList(freq, nodeList);
-    qsort(nodeList, count, sizeof(Node*), compareNode);
-    Node* root = buildHuffmanTree(nodeList, count);
-
-    //gerar codigos
-    char* codes[256] = {0};
-    char path[256];
-    generateCodes(root, path, 0, codes);
-
-    char outputFile[1024];
-    snprintf(outputFile, sizeof(outputFile), "%s.adr", filePath);
-
-    // abrir arquivo de saida pra escrita
-    FILE* output = fopen(outputFile, "wb");
-    if(!output){
-        fprintf(stderr, RED "Erro ao abrir arquivo para escrita %s\n" RESET, strerror(errno));
-        return;
-    }
-
-    // salva metadados
-    int uniqueCount = 0;
-    for (int i = 0; i < 256; i++) {
-        if (freq[i] > 0) uniqueCount++;
-    }
-
-    // grava no arquivo a quantidade de caracteres unicos com frequência > 0
-    fwrite(&uniqueCount, sizeof(int), 1, output);
-
-    // para cada caractere que ocorre no arquivo original, grava o caractere e sua frequência
-    for (int i = 0; i < 256; i++) {
-        if (freq[i] > 0) {
-            unsigned char ch = (unsigned char)i;
-            fwrite(&ch, sizeof(unsigned char), 1, output); // grava o caractere
-            fwrite(&freq[i], sizeof(int), 1, output); //grava a frequência correspondente
-        }
-    }
-
-    // le arquivo original, escreve códigos em bits no arquivo destino
-    unsigned char buffer = 0;
-    int bitCount = 0;
-    long processed = 0;
-    int lastPercent = -1;
-
-    int c;
-    while ((c = fgetc(file)) != EOF) {
-        const char* code = codes[c];
-
-        for (int i = 0; code[i] != '\0'; i++) {
-            buffer <<= 1;
-            if (code[i] == '1') buffer |= 1;
-            bitCount++;
-
-            if (bitCount == 8) {
-                fwrite(&buffer, 1, 1, output);
-                buffer = 0;
-                bitCount = 0;
-            }
-        }
-
-        processed++;
-        int percent = (processed * 100) / fileSize;
-        if (percent != lastPercent) {
-            showProgressBar(percent);
-            lastPercent = percent;
-        }
-    }
-    printf("\n");
-
-    // escrever bits restantes se houver
-    if (bitCount > 0) {
-        buffer <<= (8 - bitCount); // completar os bits restantes com 0
-        fwrite(&buffer, 1, 1, output);
-    }
-
-    // fecha arquivos e limpa memória
-    fclose(file);
-    fclose(output);
-    for(int i=0; i<256; i++) {
-        if(codes[i]) free(codes[i]);
-    }
-    free(freq);
-}
-
-// descompacta o arquivo comprimido com huffman e grava o resultado no arquivo de saída
-void decompress(const char* filePath) {
-
-    // abre o arquivo compactado para leitura em modo binario
-    FILE* file = fopen(filePath, "rb");
-    if(!file){
-        fprintf(stderr, RED "Erro ao abrir arquivo compactado %s\n" RESET, strerror(errno));
-        return;
-    }
-
-    // pega tamanho do arquivo .adr
-    fseek(file, 0, SEEK_END);
-    long fileSize = ftell(file);
-    rewind(file);
-
-    if (fileSize == -1L) {
-        printf(YELLOW "Aviso: tamanho do arquivo não pôde ser obtido, barra de progresso pode não funcionar corretamente.\n" RESET);
-        fileSize = 0; // evita divisao
-    }
-
-
-    char outputFile[1024];
-    strncpy(outputFile, filePath, sizeof(outputFile));
-    outputFile[sizeof(outputFile) - 1] = '\0';
-
-    // remove a extensao .adr se existir
-    char* ext = strrchr(outputFile, '.');
-    if (ext && strcmp(ext, ".adr") == 0) {
-        *ext = '\0';  // corta a string no ponto do .adr
-    }
-
-    // abre o arquivo de saída para escrita em modo binario
-    FILE* output = fopen(outputFile, "wb");
-    if(!output){
-        fprintf(stderr, RED "Erro ao criar arquivo de saída %s\n" RESET, strerror(errno));
-        fclose(file);
-        return;
-    }
-
-    // le o cabeçalho: as frequências dos 256 bytes (metadados salvos na compressao)
-    int freq[256] = {0};
-    int uniqueCount = 0;
-
-    // le quantos caracteres unicos foram salvos no cabeçalho
-    if (fread(&uniqueCount, sizeof(int), 1, file) != 1) {
-        fprintf(stderr, RED "Erro ao ler uniqueCount %s\n" RESET, strerror(errno));
-        fclose(file);
-        fclose(output);
-        return;
-    }
-
-    // le cada caractere e sua frequência
-    for (int i = 0; i < uniqueCount; i++) {
-        unsigned char ch;
-        int f;
-        fread(&ch, sizeof(unsigned char), 1, file);
-        fread(&f, sizeof(int), 1, file);
-        freq[ch] = f;
-    }
-
-    // reconstrói a árvore de huffman usando as frequências lidas
-    Node* nodeList[256];
-    int count = generateNodeList(freq, nodeList);
-    qsort(nodeList, count, sizeof(Node*), compareNode);
-    Node* root = buildHuffmanTree(nodeList, count);
-
-    if (!root) {
-        printf(RED "Erro: arvore de huffman vazia.\n" RESET);
-        fclose(file);
-        fclose(output);
-        return;
-    }
-
-    // percorre os bits do arquivo compactado e reconstrói o conteudo original
-    Node* current = root;
-    long processed = 0;
-    int lastPercent = -1;
-
-    int byte;
-    while ((byte = fgetc(file)) != EOF) {
-        for (int i = 7; i >= 0; i--) {
-            int bit = (byte >> i) & 1; // extrai bit da esquerda para direita
-
-            // navega pela arvore de acordo com o bit
-            current = (bit == 0) ? current->left : current->right;
-
-            // se chegou a um caractere (folha), escreve no arquivo de saída
-            if (current->left == NULL && current->right == NULL) {
-                //printf("Caractere reconstruído: %02X\n", current->character);
-                fputc(current->character, output);
-                current = root; // volta para o início da arvore
-            }
-        }
-
-        // barra de progresso
-        processed++;
-        int percent = (processed * 100) / fileSize;
-        if (percent != lastPercent) {
-            showProgressBar(percent);
-            lastPercent = percent;
-        }
-    }
-    printf("\n");
-
-    // fecha os arquivos e libera a memória usada
-    fclose(file);
-    fclose(output);
-}
-
 // compacta um unico arquivo e grava no .huff com caminho relativo e metadados
 void compressSingleFileToStream(const char* filePath, const char* relativePath, FILE* output) {
     FILE* file = fopen(filePath, "rb");
@@ -556,27 +338,6 @@ void walkAndCompress(const char* basePath, const char* currentPath, FILE* output
     closedir(dir);
 }
 
-// compacta uma pasta inteira em um único arquivo .huff
-void compressFolder(const char* folderPath) {
-    char outputPath[1024];
-
-    // gera nome do arquivo .adr automaticamente
-    snprintf(outputPath, sizeof(outputPath), "%s.adr", folderPath);
-
-    FILE* output = fopen(outputPath, "wb");
-    if (!output) {
-        fprintf(stderr, "Erro ao criar arquivo de saída: %s\n", outputPath);
-        return;
-    }
-
-    printf("Compactando para: %s\n", outputPath);
-
-    // inicia compressao recursiva da pasta
-    walkAndCompress(folderPath, "", output);
-
-    fclose(output);
-}
-
 // descompacta arquivos de um .huff, recriando pastas e arquivos no destino
 void decompressFolderFromHuff(const char* huffPath, char* outputDir) {
     // extrai nome da pasta de destino removendo .adr
@@ -672,4 +433,65 @@ void decompressFolderFromHuff(const char* huffPath, char* outputDir) {
         freeTree(root);
     }
     fclose(input);
+}
+
+// verifica se o caminho é um arquivo regular
+int is_file(const char* path) {
+    struct stat path_stat;
+    if (stat(path, &path_stat) != 0) return 0; // erro ao acessar
+    return S_ISREG(path_stat.st_mode); // arquivo regular
+}
+
+// verifica se o caminho é um diretorio
+int is_folder(const char* path) {
+    struct stat path_stat;
+    if (stat(path, &path_stat) != 0) return 0; // erro ao acessar
+    return S_ISDIR(path_stat.st_mode); // diretório
+}
+
+// compacta uma pasta inteira em um único arquivo .huff
+void compressEntry(const char* inputPath) {
+    char outputPath[1024];
+
+    // gera nome do arquivo .adr automaticamente
+    snprintf(outputPath, sizeof(outputPath), "%s.adr", inputPath);
+
+    FILE* output = fopen(outputPath, "wb");
+    if (!output) {
+        fprintf(stderr, "Erro ao criar arquivo de saída: %s\n", outputPath);
+        return;
+    }
+
+    printf("Compactando para: %s\n", outputPath);
+
+    if (is_file(inputPath)) {
+        // para arquivo simples
+        const char* relativeName = strrchr(inputPath, '/');
+        if (!relativeName) relativeName = inputPath;
+        else relativeName++; // pula o '/'
+        compressSingleFileToStream(inputPath, relativeName, output);
+    } else if (is_folder(inputPath)) {
+        // para pasta, faz compressao recursiva
+        walkAndCompress(inputPath, "", output);
+    } else {
+        fprintf(stderr, "Erro: caminho inválido para compressão: %s\n", inputPath);
+    }
+    fclose(output);
+}
+
+// descompacta um arquivo .adr para sua pasta original
+void decompressEntry(const char* inputPath) {
+    if (!is_file(inputPath)) {
+        printf("Erro: %s não é um arquivo válido\n", inputPath);
+        return;
+    }
+
+    // checa se termina com .adr
+    const char* ext = strrchr(inputPath, '.');
+    if (ext && strcmp(ext, ".adr") == 0) {
+        char outputDir[1024];
+        decompressFolderFromHuff(inputPath, outputDir);
+    } else {
+        printf(RED "Erro: formato de arquivo não suportado para descompactação: %s\n" RESET, inputPath);
+    }
 }

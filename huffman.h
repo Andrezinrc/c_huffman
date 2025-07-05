@@ -26,8 +26,6 @@ void createDirsForFile(const char* filePath);
 // gera uma lista de nós a partir do array de frequências
 // constrói a árvore de Huffman a partir de uma lista de nós com caracteres e suas frequência
 // percorre a árvore de Huffman e gera os códigos binários para cada caractere folha
-// compacta o arquivo original usando huffman e grava o resultado no arquivo de saida
-// descompacta o arquivo comprimido com Huffman e grava o resultado no arquivo de saida
     
 void showProgressBar(int percent);
 int* CountFrequency(const char fileName[]);
@@ -37,14 +35,18 @@ int generateNodeList(int* frequency, Node* nodeList[]);
 Node* buildHuffmanTree(Node* nodes[], int count);
 void generateCodes(Node* root, char* path, int depth, char* codes[256]);
 
+// verifica se o caminho é um arquivo regular
+int is_file(const char* path);
+
+// verifica se o caminho é um diretorio
+int is_folder(const char* path);
+
 // funcoes principais para compressao
-void compress(const char* filePath);
 void compressSingleFileToStream(const char* filePath, const char* relativePath, FILE* output);
 void walkAndCompress(const char* basePath, const char* currentPath, FILE* output);
-void compressFolder(const char* folderPath);
+void compressEntry(const char* inputPath);
 
 // funcao para descompressao
-void decompress(const char* filePath);
 void decompressFolderFromHuff(const char* huffPath, char* outputDir);
-
+void decompressEntry(const char* inputPath);
 #endif
