@@ -13,6 +13,18 @@
 
 #define MAX_NODES 256
 
+// retorna o tamanho do arquivo
+// em bytes ou -1 em caso de erro
+long getFileSize(const char* path) {
+    FILE* file = fopen(path, "rb");
+    if (!file) return -1;
+
+    fseek(file, 0, SEEK_END);
+    long size = ftell(file);
+    fclose(file);
+    return size;
+}
+
 // verifica se o caminho fornecido é um diretorio
 // retorna 1 se for diretorio, 0 caso contrario ou erro
 int isDirectory(const char* path) {
@@ -515,4 +527,55 @@ void decompressEntry(const char* inputPath) {
     } else {
         printf(RED "Erro: formato de arquivo não suportado para descompactação: %s\n" RESET, inputPath);
     }
+}
+
+// calcula o tamanho total de uma pasta recursivamente
+long getFolderSize(const char* path) {
+    long totalSize = 0;
+    struct stat st;
+
+    // obtém informações do caminho (arquivo ou pasta)
+    if (stat(path, &st) == -1) return 0;
+
+    // se for arquivo comum, retorna seu tamanho
+    if (S_ISREG(st.st_mode)) {
+        return st.st_size;
+    }
+
+    // abre diretório
+    DIR* dir = opendir(path);
+    if (!dir) return 0;
+
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != NULL) {
+        // ignora "." e ".."
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+            continue;
+
+        // monta caminho completo do item atual
+        char fullPath[1024];
+        snprintf(fullPath, sizeof(fullPath), "%s/%s", path, entry->d_name);
+
+        // soma recursivamente
+        totalSize += getFolderSize(fullPath);
+    }
+
+    closedir(dir);
+    return totalSize;
+}
+
+// formato legivel (KB, MB, GB, etc)
+void printHumanSize(const char* label, long bytes) {
+    const char* units[] = {"Bytes", "KB", "MB", "GB", "TB"};
+    int unitIndex = 0;
+    double size = bytes;
+
+    // divide por 1024 até achar unidade apropriada
+    while (size >= 1024 && unitIndex < 4) {
+        size /= 1024.0;
+        unitIndex++;
+    }
+
+    // imprime valor convertido com rótulo
+    printf("%s: %.2f %s\n", label, size, units[unitIndex]);
 }
