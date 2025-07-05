@@ -340,22 +340,39 @@ void walkAndCompress(const char* basePath, const char* currentPath, FILE* output
 
 // descompacta arquivos de um .huff, recriando pastas e arquivos no destino
 void decompressFolderFromHuff(const char* huffPath, char* outputDir) {
-    // extrai nome da pasta de destino removendo .adr
-    strncpy(outputDir, huffPath, 1024);
-    outputDir[1023] = '\0';
-
-    char* dot = strrchr(outputDir, '.');
-    if (dot && strcmp(dot, ".adr") == 0) {
-        *dot = '\0';  // remove o .adr
-    }
-
-    // cria pasta base de saída
-    mkdir(outputDir, 0755);
-
     FILE* input = fopen(huffPath, "rb");
     if (!input) {
         fprintf(stderr, "Erro ao abrir arquivo .huff\n");
         return;
+    }
+
+    int isFirst = 1;
+    int isSingleFile = 0;
+    char relativePath[1024];
+
+    // extrai nome base para outputDir
+    strncpy(outputDir, huffPath, 1024);
+    outputDir[1023] = '\0';
+    char* dot = strrchr(outputDir, '.');
+    if (dot && strcmp(dot, ".adr") == 0) *dot = '\0';
+
+    // detecta se é um arquivo único ou pasta com base no nome .adr
+    const char* baseName = strrchr(huffPath, '/');
+    if (!baseName) baseName = huffPath; else baseName++; // pula a barra
+
+    // verifica se tem mais de uma extensão antes do .adr → ex: arquivo.txt.adr
+    char temp[1024];
+    strncpy(temp, baseName, sizeof(temp));
+    temp[sizeof(temp) - 1] = '\0';
+    char* lastDot = strrchr(temp, '.');
+    if (lastDot && strcmp(lastDot, ".adr") == 0) {
+        *lastDot = '\0'; // remove .adr
+        isSingleFile = strchr(temp, '.') != NULL; // tem outro ponto antes = é arquivo
+    }
+
+    // cria pasta só se for múltiplos arquivos/subpastas
+    if (!isSingleFile) {
+        mkdir(outputDir, 0755);
     }
 
     while (!feof(input)) {
@@ -364,7 +381,7 @@ void decompressFolderFromHuff(const char* huffPath, char* outputDir) {
         if (fread(&pathLen, sizeof(uint16_t), 1, input) != 1) break;
 
         // le caminho relativo
-        char relativePath[1024] = {0};
+        memset(relativePath, 0, sizeof(relativePath));
         fread(relativePath, 1, pathLen, input);
 
         // le tamanho original do arquivo
@@ -383,7 +400,11 @@ void decompressFolderFromHuff(const char* huffPath, char* outputDir) {
 
         // monta caminho completo para o arquivo a ser criado
         char fullPath[2048];
-        snprintf(fullPath, sizeof(fullPath), "%s/%s", outputDir, relativePath);
+        if (isSingleFile) {
+            snprintf(fullPath, sizeof(fullPath), "%s", outputDir); // salva direto no outputDir
+        } else {
+            snprintf(fullPath, sizeof(fullPath), "%s/%s", outputDir, relativePath); // pasta + subcaminho
+        }
 
         // cria diretorios necessários para o caminho do arquivo
         createDirsForFile(fullPath);
@@ -402,7 +423,7 @@ void decompressFolderFromHuff(const char* huffPath, char* outputDir) {
         unsigned char byte;
         int decodedBytes = 0;
         int lastPercent = -1;
-    
+
         // percorre os bits do arquivo ate alcançar o tamanho original
         while (decodedBytes < originalSize && fread(&byte, 1, 1, input) == 1) {
             for (int i = 7; i >= 0; i--) {
@@ -414,7 +435,7 @@ void decompressFolderFromHuff(const char* huffPath, char* outputDir) {
                     fputc(current->character, outFile);
                     current = root;
                     decodedBytes++;
-                    
+
                     // atualiza barra de progresso a cada 1% decodificado
                     int percent = (int)((decodedBytes * 100) / originalSize);
                     if (percent != lastPercent) {
