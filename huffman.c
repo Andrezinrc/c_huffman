@@ -343,7 +343,11 @@ void walkAndCompress(const char* basePath, const char* currentPath, FILE* output
         if (S_ISDIR(pathStat.st_mode)) {
             walkAndCompress(basePath, newCurrentPath, output); // recursao
         } else if (S_ISREG(pathStat.st_mode)) {
+            printf("Compressing: %s\n", newCurrentPath);
             compressSingleFileToStream(fullEntryPath, newCurrentPath, output);
+            // limpa a barra e o nome do arquivo
+            printf("\033[F\033[K"); // limpa a barra
+            printf("\033[F\033[K"); // limpa a linha
         }
     }
 
@@ -460,6 +464,9 @@ void decompressFolderFromHuff(const char* huffPath, char* outputDir) {
             }
         }
         printf("\n");
+
+        // limpa a linha da barra, pronta para o proximo arquivo
+        printf("\033[F\033[K");
 
         // fecha o arquivo de saida e libera a arvore de huffman
         fclose(outFile);
