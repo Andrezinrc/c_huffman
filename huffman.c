@@ -287,8 +287,6 @@ void compressSingleFileToStream(const char* filePath, const char* relativePath, 
             lastPercent = percent;
         }
     }
-    printf("\n");
-
 
     // se restaram bits nao gravados,
     // preenche com zeros a direita e grava o ultimo byte
@@ -343,11 +341,10 @@ void walkAndCompress(const char* basePath, const char* currentPath, FILE* output
         if (S_ISDIR(pathStat.st_mode)) {
             walkAndCompress(basePath, newCurrentPath, output); // recursao
         } else if (S_ISREG(pathStat.st_mode)) {
-            printf("Compressing: %s\n", newCurrentPath);
+            // limpa a barra
             compressSingleFileToStream(fullEntryPath, newCurrentPath, output);
-            // limpa a barra e o nome do arquivo
-            printf("\033[F\033[K"); // limpa a barra
-            printf("\033[F\033[K"); // limpa a linha
+            printf("\n");
+            printf("\033[F\033[K");
         }
     }
 
@@ -577,9 +574,9 @@ void printHumanSize(const char* label, long bytes) {
     int unitIndex = 0;
     double size = bytes;
 
-    // divide por 1024 até achar unidade apropriada
-    while (size >= 1024 && unitIndex < 4) {
-        size /= 1024.0;
+    // divide por 1000 até achar unidade apropriada
+    while (size >= 1000 && unitIndex < 4) {
+        size /= 1000.0;
         unitIndex++;
     }
 
